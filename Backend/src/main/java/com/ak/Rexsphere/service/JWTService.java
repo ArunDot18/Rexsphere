@@ -23,17 +23,17 @@ public class JWTService {
         this.secretKey = Keys.hmacShaKeyFor(keyBytes);
     }
 
-    public String generateToken(String userName, Long userId) {
+    public String generateToken(String email, Long userId) {
         return Jwts.builder()
                 .claims(Map.of("userId", userId))
-                .subject(userName)
+                .subject(email)
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis() + 60 * 1000 * 30))
                 .signWith(secretKey)
                 .compact();
     }
     
-    public String extractUserName(String token) {
+    public String extractEmail(String token) {
         return extractClaim(token, Claims::getSubject);
     }
 
@@ -42,7 +42,7 @@ public class JWTService {
     }
 
     public boolean validateToken(String token, UserDetails userDetails) {
-        return extractUserName(token).equals(userDetails.getUsername()) && !isTokenExpired(token);
+        return extractEmail(token).equals(userDetails.getUsername()) && !isTokenExpired(token);
     }
 
     private boolean isTokenExpired(String token) {

@@ -76,4 +76,11 @@ public class UserController {
             return ResponseEntity.status(500).body("Image upload failed: " + e.getMessage());
         }
     }
+
+    @PostMapping("/set-password")
+    public ResponseEntity<String> setPassword(@RequestParam("password") String password,
+                                              @RequestHeader("Authorization") String token) {
+        return userService.setPassword(password, token);
+    }
+
 }

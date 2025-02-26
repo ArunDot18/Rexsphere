@@ -28,8 +28,11 @@ public class User {
     @Column(name = "username", nullable = false, unique = true)
     private String userName;
 
-    @Column(name = "password", nullable = false)
+    @Column(name = "password")
     private String password;
+
+    @Column(name = "provider", nullable = false)
+    private String provider;
 
     @Column(name = "mobile_number", length = 15, nullable = false)
     private String mobileNumber;

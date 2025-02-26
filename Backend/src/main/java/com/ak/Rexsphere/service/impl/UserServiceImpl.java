@@ -5,6 +5,7 @@ import com.ak.Rexsphere.entity.User;
 import com.ak.Rexsphere.repository.UserRepository;
 import com.ak.Rexsphere.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -38,6 +39,11 @@ public class UserServiceImpl implements UserService {
     @Override
     public User getUserById(Long id) {
         return userRepository.findById(id).orElse(null);
+    }
+
+    @Override
+    public User getUserByEmail(String email) {
+        return userRepository.findByEmail(email);
     }
 
     @Override
@@ -78,17 +84,22 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public String verify(User user) {
-        Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(user.getUserName(), user.getPassword()));
+        User userFromDb = userRepository.findByEmail(user.getEmail());
+
+        if (userFromDb == null) {
+            return "User not found.";
+        }
+
+        if (!"LOCAL".equals(userFromDb.getProvider())) {
+            return "Use OAuth2 to log in.";
+        }
+
+        Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(user.getEmail(), user.getPassword())
+        );
+
         if (authentication.isAuthenticated()) {
-
-            User userFromDB = userRepository.findByUserName(user.getUserName());
-
-            if (userFromDB != null) {
-                Long userId = userFromDB.getId();
-                return jwtService.generateToken(user.getUserName(), userId);
-            } else {
-                return "Customer not found.";
-            }
+            return jwtService.generateToken(user.getEmail(), userFromDb.getId());
         }
         return "Authentication Failed.";
     }
@@ -100,5 +111,21 @@ public class UserServiceImpl implements UserService {
             user.setProfilePictureUrl(newImageUrl);
             userRepository.save(user);
         }
+    }
+
+    @Override
+    public ResponseEntity<String> setPassword(String password, String token) {
+        String email = jwtService.extractEmail(token.substring(7));
+        User user = userRepository.findByEmail(email);
+
+        if (user == null || !"OAUTH2".equals(user.getProvider())) {
+            return ResponseEntity.status(403).body("User not found or not an OAuth2 user.");
+        }
+
+        user.setPassword(passwordEncoder.encode(password));
+        user.setProvider("LOCAL");
+        userRepository.save(user);
+
+        return ResponseEntity.ok("Password set successfully. Uou can now log in with email and password.");
     }
 }
